@@ -23,7 +23,7 @@
 """
 from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication, QDate  ##inseri esse QDate, para inserir a data autom. na interface do usuário
 from qgis.PyQt.QtGui import QIcon
-from qgis.PyQt.QtWidgets import QAction, QMessageBox, QToolBar ##inseri o QMessageBox pois chamei em linhas abaixo
+from qgis.PyQt.QtWidgets import QAction, QMessageBox, QToolBar, QTableWidgetItem ##inseri o QMessageBox pois chamei em linhas abaixo
 
 from qgis.core import QgsProject, QgsFeature, QgsGeometry, QgsPoint       ##precisei importar para usar o QgsProject e QgsFeature abaixo
 
@@ -218,7 +218,9 @@ class NewRaptor:
         if not "Raptor Nests" in map_layers:
             missing_layers.append("Raptor Nests")
         if not "Raptor Buffer" in map_layers:
-            missing_layers.append("Raptor Buffer")         
+            missing_layers.append("Raptor Buffer")
+        if not "Linear Buffer" in map_layers:
+            missing_layers.append("Linear Buffer")            
         if missing_layers:   ##se as missing_layers for True: (se tiver ao menos uma)
             msg = "The following layers are missing from this project\n"
             for lyr in missing_layers:
@@ -238,6 +240,7 @@ class NewRaptor:
             
             lyrNests = QgsProject.instance().mapLayersByName("Raptor Nests")[0]   ##Obtém a camada "Raptor Nests" do projeto do QGIS. 
             lyrBuffer = QgsProject.instance().mapLayersByName("Raptor Buffer")[0]  ##Obtém a camada "Raptor Buffer" do projeto do QGIS. 
+            lyrLinear = QgsProject.instance().mapLayersByName("Linear Buffer")[0]
             idxNestId = lyrNests.fields().indexOf("Nest_ID")        ##indexOf, com O maiúsculo: Obtém o índice do campo "Nest_ID", presente como atributo na camada "Raptor Nests".
             valNestID = lyrNests.maximumValue(idxNestId) + 1  ##pega o valor máximo do índice anterior e acrescenta 1
             
@@ -275,8 +278,28 @@ class NewRaptor:
             
             
             dlgTable = DlgTable()   ##instanciando a função DlgTable(), presente no arquivo impact_table.py
+            dlgTable.setWindowTitle("Impacts Table for Nest {}".format(valNestID))
+            ##Encontrando feições lineares que impactarão o ninho e reportá-los (popular a tabela com esses projetos de impacto)
+            bb = buffer.boundingBox()
+            linears = lyrLinear.getFeatures(bb)  ##bb é bounding box (retangulo delimitador)
+            for linear in linears:
+                valID = linear.attribute("Project")
+                valType = linear.attribute("type")
+                valDistance = linear.geometry().distance(geom)
+                if valDistance < valBuffer:
+                    ##populando a tabela com a feição linear
+                    row = dlgTable.tblImpacts.rowCount()
+                    dlgTable.tblImpacts.insertRow(row)
+                    dlgTable.tblImpacts.setItem(row, 0, QTableWidgetItem(str(valID)))
+                    dlgTable.tblImpacts.setItem(row, 1, QTableWidgetItem(valType))
+                    twi = QTableWidgetItem("{:4.5f}".format(valDistance))
+                    twi.setTextAlignment(QtCore.Qt.AlignRight)
+                    dlgTable.tblImpacts.setItem(row, 2, QTableWidgetItem(str("{:4.5f}".format(valDistance))))
+            dlgTable.tblImpacts.sortItems(2)
             dlgTable.show() 
             dlgTable.exec_()
+            
+            
             
             ##QMessageBox.information(self.dlg, "Message", "Should only run if OK button")
         else:
