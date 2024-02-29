@@ -32,6 +32,7 @@ from qgis.core import QgsProject, QgsFeature, QgsGeometry, QgsPoint       ##prec
 from .resources import *
 # Import the code for the dialog
 from .new_raptor_dialog import NewRaptorDialog
+from .impact_table import DlgTable  ##importando o arquivo de impacto criado
 import os.path
 
 
@@ -273,6 +274,9 @@ class NewRaptor:
             lyrBuffer.reload()
             
             
+            dlgTable = DlgTable()   ##instanciando a função DlgTable(), presente no arquivo impact_table.py
+            dlgTable.show() 
+            dlgTable.exec_()
             
             ##QMessageBox.information(self.dlg, "Message", "Should only run if OK button")
         else:
